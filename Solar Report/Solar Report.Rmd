@@ -25,11 +25,13 @@ library(dplyr)
 library(curl)
 library(jsonlite)
 library(ggplot2)
+library(RPushbullet)
 ```
 
 
 ```{r functions}
-
+ELECTRICITY_PRICE = 0.20
+ESTIMATED_SELF_USE_RATE = 0.75
 ```
 
 I've imported data directly from the Met Eireann API that shows monthly
@@ -108,10 +110,10 @@ reduced_dunsany_solar_radiation <-
   mutate(
     normalised_irradiation = solar_irradiation_jpercm2 / max(solar_irradiation_jpercm2),
     normalised_solar_power = solar_power_generation / max(solar_power_generation)
-  )
+  ) %>% 
+  arrange(year_month)
 
 reduced_dunsany_solar_radiation %>% 
-
   select(year_month, normalised_irradiation, normalised_solar_power) %>% 
   tidyr::pivot_longer(cols = normalised_irradiation:normalised_solar_power,
                       names_to = "solar_measurement",
@@ -123,6 +125,7 @@ reduced_dunsany_solar_radiation %>%
         colour=solar_measurement)
   ) +
   geom_line() +
+  geom_point() +
   scale_color_brewer(palette = 2, type = "qual") +
   theme_minimal()
   
@@ -133,19 +136,60 @@ reduced_dunsany_solar_radiation %>%
 ## Modelling
 ### Simple Linear Model
 ```{r model 1}
+training_df <- 
+  reduced_dunsany_solar_radiation %>% 
+  filter(year_month != max(year_month))
+
+current_df <-  
+  reduced_dunsany_solar_radiation %>% 
+  filter(year_month == max(year_month))
+
 solar_model <- lm(
   solar_power_generation ~ solar_irradiation_jpercm2, 
-  data = reduced_dunsany_solar_radiation
+  data = training_df
 )
+
+solar_model_confidence <- confint(solar_model)
 
 ```
 
 
 ```{r model 2}
-predict(solar_model, data.frame(solar_irradiation_jpercm2 = 15000))
+current_month_values <- 
+  list(
+    lower_estimate_energy_produced = (current_df$solar_irradiation_jpercm2 * solar_model_confidence["solar_irradiation_jpercm2", ][[1]]),
+    upper_estimate_energy_produced = (current_df$solar_irradiation_jpercm2 * solar_model_confidence["solar_irradiation_jpercm2", ][[2]])
+  ) %>% 
+  purrr::map_dbl(function(x) x + solar_model$coefficients["(Intercept)"][[1]])
+
+current_month_values[["estimated_energy_produced"]] <- 
+  predict(solar_model, dplyr::select(current_df, solar_irradiation_jpercm2))
+
+current_month_values[["solar_irradiance"]] <- 
+  current_df$solar_irradiation_jpercm2[[1]]
+
+current_month_values[["estimated_energy_total_value"]] <- 
+  current_month_values[["estimated_energy_produced"]] * ELECTRICITY_PRICE
+
+current_month_values[["estimated_energy_utilised_value"]] <- 
+  current_month_values[["estimated_energy_total_value"]] * ESTIMATED_SELF_USE_RATE
 ```
 
-### Transformations
+
+```{r}
+# RPushbullet::pbPost(
+#   "note",
+#   title = paste0(
+#     "Solar value estimate for ", current_df$year_month, " so far: €", 
+#     round(current_month_values[["estimated_energy_utilised_value"]], 2)
+#     ),
+#   body = "Solar!"
+#   )
+```
+
+
+
+### Other Models
 ```{r model 3 }
 
 ```
