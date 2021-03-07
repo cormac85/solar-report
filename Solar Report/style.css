@@ -1,0 +1,14 @@
+h1, .h1, h2, .h2, h3, .h3 {
+    margin-top: 84px;
+}
+
+.btn {
+    border-width: 0 0px 0px 0px;
+    font-weight: normal;
+    text-transform: ;
+}
+.btn-default {
+    color: #337ab7;
+    background-color: #ffffff;
+    border-color: #ffffff;
+}
