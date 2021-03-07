@@ -153,7 +153,7 @@ solar_model_confidence <- confint(solar_model)
 
 ```
 
-
+### Estimates
 ```{r model 2}
 current_month_values <- 
   list(
@@ -173,6 +173,8 @@ current_month_values[["estimated_energy_total_value"]] <-
 
 current_month_values[["estimated_energy_utilised_value"]] <- 
   current_month_values[["estimated_energy_total_value"]] * ESTIMATED_SELF_USE_RATE
+
+current_month_values
 ```
 
 
@@ -185,6 +187,22 @@ current_month_values[["estimated_energy_utilised_value"]] <-
 #     ),
 #   body = "Solar!"
 #   )
+```
+
+### Summary
+```{r}
+paste0(
+  "Solar value estimate for ", current_df$year_month, " so far: €",
+  round(current_month_values[["estimated_energy_utilised_value"]], 2)
+  )
+```
+
+
+```{r}
+paste0(
+  "Solar value estimate for ", current_df$year_month, " so far: €",
+  round(current_month_values[["estimated_energy_utilised_value"]], 2)
+  )
 ```
 
 

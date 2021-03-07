@@ -8,3 +8,4 @@
 *.csv
 *.zip
 *.gzip
+*_files/
