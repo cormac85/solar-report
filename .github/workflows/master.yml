@@ -1,0 +1,49 @@
+# This is a basic workflow that only runs on schedule
+
+name: run_portfolio_stats
+
+on:
+  push:
+  schedule:
+  - cron: '0 9 * * *'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job
+  run_portfolio_stats:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # retrieve secrets from github
+    env:
+        RENV_PATHS_ROOT: ~/.local/share/renv
+        PUSHBULLET_API: ${{ secrets.PUSHBULLET_API }}
+        PUSHBULLET_DEVICE_1: ${{ secrets.PUSHBULLET_DEVICE_1 }}
+        PUSHBULLET_DEVICE_2: ${{ secrets.PUSHBULLET_DEVICE_2 }}
+        PUSHBULLET_DEVICE_3: ${{ secrets.PUSHBULLET_DEVICE_3 }}
+        PUSHBULLET_DEVICE_NAME_1: Chrome
+        PUSHBULLET_DEVICE_NAME_2: Firefox
+        PUSHBULLET_DEVICE_NAME_3: Phone
+        PUSHBULLET_DEFAULT_DEVICE: Phone
+    #
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: setup-r
+        uses: r-lib/actions/setup-r@v1
+        with:
+          r-version: '4.0.2'
+      # install renv package
+      - run: R -e 'install.packages("renv")'
+      # set up cache
+      - name: Cache packages
+        uses: actions/cache@v1
+        with:
+           path: ${{ env.RENV_PATHS_ROOT }}
+           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+           restore-keys: |-
+              ${{ runner.os }}-renv-
+      - run: sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev
+      # install c++ dependencies and install necessary packages
+      - run: R -e 'renv::restore()'
+      - run: Rscript ./R/write_rpushbullet.R
+      - run: Rscript ./R/push_solar_estimate.R
