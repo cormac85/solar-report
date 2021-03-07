@@ -17,14 +17,7 @@ jobs:
     env:
         RENV_PATHS_ROOT: ~/.local/share/renv
         PUSHBULLET_API: ${{ secrets.PUSHBULLET_API }}
-        PUSHBULLET_DEVICE_1: ${{ secrets.PUSHBULLET_DEVICE_1 }}
-        PUSHBULLET_DEVICE_2: ${{ secrets.PUSHBULLET_DEVICE_2 }}
         PUSHBULLET_DEVICE_3: ${{ secrets.PUSHBULLET_DEVICE_3 }}
-        PUSHBULLET_DEVICE_NAME_1: Chrome
-        PUSHBULLET_DEVICE_NAME_2: Firefox
-        PUSHBULLET_DEVICE_NAME_3: Phone
-        PUSHBULLET_DEFAULT_DEVICE: Phone
-    #
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
