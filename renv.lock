@@ -37,6 +37,13 @@
       "Repository": "CRAN",
       "Hash": "e031418365a7f7a766181ab5a41a5716"
     },
+    "RPushbullet": {
+      "Package": "RPushbullet",
+      "Version": "0.3.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "0b600e4308115126387df20181e731d2"
+    },
     "assertthat": {
       "Package": "assertthat",
       "Version": "0.2.1",
