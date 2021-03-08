@@ -4,17 +4,20 @@ library(jsonlite)
 
 
 create_message <- function(solar_data_df){
+  
+  confidence_inteval <- 
+    (filter(solar_data_df, !is_training)$estimated_energy_utilised_value 
+     - filter(solar_data_df, !is_training)$lower_confint_value)
+  
   list(
     title_text = paste0(
       "Solar value estimate for ",  filter(solar_data_df, !is_training)$year_month, " so far: €", 
-      round(filter(solar_data_df, !is_training)$estimated_energy_utilised_value, 2)
+      round(filter(solar_data_df, !is_training)$estimated_energy_utilised_value, 2),
+      " (± €", 
+      round(confidence_inteval, 2),
+      ")"
     ), 
     body_text = paste0(
-      "Lower Estimate: €", round(filter(solar_data_df, !is_training)$lower_confint_value, 2),
-      "\n",
-      "Upper Estimate: €", round(filter(solar_data_df, !is_training)$upper_confint_value, 2),
-      "\n",
-      "\n",
       "Since ",
       filter(solar_data_df, is_training & year_month == min(year_month))$year_month, 
       " estimated total value from solar panels: €",
