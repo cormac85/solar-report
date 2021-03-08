@@ -2,22 +2,44 @@ library(dplyr)
 library(tidyr)
 library(jsonlite)
 
+
+create_message <- function(solar_data_df){
+  list(
+    title_text = paste0(
+      "Solar value estimate for ",  filter(solar_data_df, !is_training)$year_month, " so far: €", 
+      round(filter(solar_data_df, !is_training)$estimated_energy_utilised_value, 2)
+    ), 
+    body_text = paste0(
+      "Since ",
+      filter(solar_data_df, is_training & year_month == min(year_month))$year_month, 
+      " estimated total value from solar panels: €",
+      round(sum(solar_data_df$estimated_energy_utilised_value, na.rm = TRUE))
+    )
+  )
+}
+
+# Constants
+
 ELECTRICITY_PRICE = 0.20
 ESTIMATED_SELF_USE_RATE = 0.75
 
+
+# Import
 report <- jsonlite::fromJSON("https://prodapi.metweb.ie/monthly-data/Dunsany%20(Grange)")
 
 monthly_solar_generation <- dplyr::tibble(
   year = c(rep("2021", 12), rep("2020", 12), rep("2019", 12), rep("2018", 12)),
   month = rep(1:12, 4),
   solar_power_generation = c(
-    c(85, 157.5, 44.5, rep(NA, 9)),
+    c(85, 157.5, 57.9, rep(NA, 9)),
     c(rep(NA, 5), 358.4, 394.9, 314.3, 332.8, 235, 119.6, 38.7),
     rep(NA, 12),
     rep(NA, 12)
   )
 )
 
+
+# Clean
 dunsany_solar_radiation <- 
   report$solar_radiation$report %>% 
   purrr::map_df(as_tibble) %>% 
@@ -30,17 +52,17 @@ dunsany_solar_radiation <-
          month = rep(1:12, 4),
          solar_irradiation_jpercm2 = as.numeric(solar_irradiation_jpercm2))
 
-dunsany_solar_radiation <- 
+solar_data <- 
   dunsany_solar_radiation %>% 
   inner_join(monthly_solar_generation, by = c("year", "month"))
 
-reduced_dunsany_solar_radiation <- 
-  dunsany_solar_radiation%>% 
+solar_data <- 
+  solar_data %>% 
   filter(!is.na(solar_irradiation_jpercm2),
          !is.na(solar_power_generation))
 
-reduced_dunsany_solar_radiation <- 
-  reduced_dunsany_solar_radiation %>% 
+solar_data <- 
+  solar_data %>% 
   mutate(month = sprintf("%02d", as.numeric(month))) %>% 
   mutate(year = as.integer(year)) %>% 
   tidyr::unite("year_month", year, month, sep="-", remove=FALSE) %>% 
@@ -50,45 +72,47 @@ reduced_dunsany_solar_radiation <-
   ) %>% 
   arrange(year_month)
 
-training_df <- 
-  reduced_dunsany_solar_radiation %>% 
-  filter(year_month != max(year_month))
+solar_data <- 
+  solar_data %>% 
+  mutate(is_training = ifelse(year_month != max(year_month), TRUE, FALSE))
 
-current_df <-  
-  reduced_dunsany_solar_radiation %>% 
-  filter(year_month == max(year_month))
+# Train
 
 solar_model <- lm(
   solar_power_generation ~ solar_irradiation_jpercm2, 
-  data = training_df
+  data = filter(solar_data, is_training)
 )
-
 solar_model_confidence <- confint(solar_model)
 
-current_month_values <- 
-  list(
-    lower_estimate_energy_produced = (current_df$solar_irradiation_jpercm2 * solar_model_confidence["solar_irradiation_jpercm2", ][[1]]),
-    upper_estimate_energy_produced = (current_df$solar_irradiation_jpercm2 * solar_model_confidence["solar_irradiation_jpercm2", ][[2]])
-  ) %>% 
-  purrr::map_dbl(function(x) x + solar_model$coefficients["(Intercept)"][[1]])
 
-current_month_values[["estimated_energy_produced"]] <- 
-  predict(solar_model, dplyr::select(current_df, solar_irradiation_jpercm2))
+# Calculate Estimates
+solar_data <- 
+  solar_data %>% 
+  mutate(
+    fitted_values = c(
+      solar_model$fitted.values, 
+      predict(solar_model, 
+              dplyr::select(
+                filter(solar_data, !is_training), 
+                solar_irradiation_jpercm2
+                )
+              )
+      ),
+    lower_confint = ((solar_irradiation_jpercm2
+                     * solar_model_confidence["solar_irradiation_jpercm2", ][[1]]) 
+                     + solar_model$coefficients["(Intercept)"[[1]]]),
+    upper_confint = ((solar_irradiation_jpercm2 
+                     * solar_model_confidence["solar_irradiation_jpercm2", ][[2]])
+                     + solar_model$coefficients["(Intercept)"[[1]]]),
+    estimated_energy_value = fitted_values * ELECTRICITY_PRICE,
+    estimated_energy_utilised_value = estimated_energy_value * ESTIMATED_SELF_USE_RATE
+  )
 
-current_month_values[["solar_irradiance"]] <- 
-  current_df$solar_irradiation_jpercm2[[1]]
-
-current_month_values[["estimated_energy_total_value"]] <- 
-  current_month_values[["estimated_energy_produced"]] * ELECTRICITY_PRICE
-
-current_month_values[["estimated_energy_utilised_value"]] <- 
-  current_month_values[["estimated_energy_total_value"]] * ESTIMATED_SELF_USE_RATE
+# Push
+push_message <- create_message(solar_data)
 
 RPushbullet::pbPost(
   "note",
-  title = paste0(
-    "Solar value estimate for ", current_df$year_month, " so far: €", 
-    round(current_month_values[["estimated_energy_utilised_value"]], 2)
-  ),
-  body = "Solar!"
+  title = push_message$title_text,
+  body = push_message$body_text
 )
