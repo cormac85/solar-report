@@ -10,6 +10,11 @@ create_message <- function(solar_data_df){
       round(filter(solar_data_df, !is_training)$estimated_energy_utilised_value, 2)
     ), 
     body_text = paste0(
+      "Lower Estimate: €", round(filter(solar_data_df, !is_training)$lower_confint_value, 2),
+      "\n",
+      "Upper Estimate: €", round(filter(solar_data_df, !is_training)$upper_confint_value, 2),
+      "\n",
+      "\n",
       "Since ",
       filter(solar_data_df, is_training & year_month == min(year_month))$year_month, 
       " estimated total value from solar panels: €",
@@ -80,7 +85,7 @@ solar_data <-
 
 solar_model <- lm(
   solar_power_generation ~ solar_irradiation_jpercm2, 
-  data = filter(solar_data, is_training)
+  data = filter(solar_data, is_training, !is.na(solar_power_generation))
 )
 solar_model_confidence <- confint(solar_model)
 
@@ -104,6 +109,8 @@ solar_data <-
     upper_confint = ((solar_irradiation_jpercm2 
                      * solar_model_confidence["solar_irradiation_jpercm2", ][[2]])
                      + solar_model$coefficients["(Intercept)"[[1]]]),
+    lower_confint_value = lower_confint * ELECTRICITY_PRICE * ESTIMATED_SELF_USE_RATE,
+    upper_confint_value = upper_confint * ELECTRICITY_PRICE * ESTIMATED_SELF_USE_RATE,
     estimated_energy_value = fitted_values * ELECTRICITY_PRICE,
     estimated_energy_utilised_value = estimated_energy_value * ESTIMATED_SELF_USE_RATE
   )
