@@ -18,6 +18,8 @@ create_message <- function(solar_data_df){
       ")"
     ), 
     body_text = paste0(
+      "Estimated Feed In Tarrif: €", round(filter(solar_data_df, !is_training)$estimated_feed_in_tarrif_value, 2),
+      "\n",
       "Since ",
       filter(solar_data_df, is_training & year_month == min(year_month))$year_month, 
       " estimated total value from solar panels: €",
@@ -29,6 +31,7 @@ create_message <- function(solar_data_df){
 # Constants
 
 ELECTRICITY_PRICE = 0.20
+FEED_IN_TARRIF_PRICE = 0.15
 ESTIMATED_SELF_USE_RATE = 0.75
 
 
@@ -115,7 +118,8 @@ solar_data <-
     lower_confint_value = lower_confint * ELECTRICITY_PRICE * ESTIMATED_SELF_USE_RATE,
     upper_confint_value = upper_confint * ELECTRICITY_PRICE * ESTIMATED_SELF_USE_RATE,
     estimated_energy_value = fitted_values * ELECTRICITY_PRICE,
-    estimated_energy_utilised_value = estimated_energy_value * ESTIMATED_SELF_USE_RATE
+    estimated_energy_utilised_value = estimated_energy_value * ESTIMATED_SELF_USE_RATE,
+    estimated_feed_in_tarrif_value = fitted_values * FEED_IN_TARRIF_PRICE * (1 - ESTIMATED_SELF_USE_RATE)
   )
 
 # Push
