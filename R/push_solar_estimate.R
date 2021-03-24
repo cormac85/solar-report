@@ -4,6 +4,23 @@ library(jsonlite)
 
 
 create_message <- function(solar_data_df){
+  days_in_current_month <- Sys.Date() %>% strftime(format="%d") %>% as.numeric()
+  current_month <-  Sys.Date() %>% strftime(format="%B")
+  
+  solar_value_this_month <-  
+    solar_data_df %>% 
+    filter(!is_training) %>% 
+    pull(estimated_energy_utilised_value) %>% 
+    round(2)
+  
+  estimated_feed_in_tarrif_this_month <-
+    solar_data_df %>% 
+    filter(!is_training) %>% 
+    pull(estimated_feed_in_tarrif_value) %>% 
+    round(2)
+    
+    
+    round(filter(solar_data_df, !is_training)$estimated_energy_utilised_value, 2)
   
   confidence_inteval <- 
     (filter(solar_data_df, !is_training)$estimated_energy_utilised_value 
@@ -11,14 +28,16 @@ create_message <- function(solar_data_df){
   
   list(
     title_text = paste0(
-      "Solar value estimate for ",  filter(solar_data_df, !is_training)$year_month, " so far: €", 
-      round(filter(solar_data_df, !is_training)$estimated_energy_utilised_value, 2),
-      " (± €", 
-      round(confidence_inteval, 2),
-      ")"
+      "Solar value estimate for ",  
+      filter(solar_data_df, !is_training)$year_month, 
+      " so far: €",  solar_value_this_month,
+      " (± €", round(confidence_inteval, 2), ")"
     ), 
     body_text = paste0(
-      "Estimated Feed In Tarrif: €", round(filter(solar_data_df, !is_training)$estimated_feed_in_tarrif_value, 2),
+      current_month, " Mean Value per Day: €",
+      round(solar_value_this_month / days_in_current_month, 2),
+      "\n",
+      "Estimated Feed In Tarrif: €", estimated_feed_in_tarrif_this_month,
       "\n",
       "Since ",
       filter(solar_data_df, is_training & year_month == min(year_month))$year_month, 
