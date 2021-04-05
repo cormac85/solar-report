@@ -61,7 +61,7 @@ monthly_solar_generation <- dplyr::tibble(
   year = c(rep("2021", 12), rep("2020", 12), rep("2019", 12), rep("2018", 12)),
   month = rep(1:12, 4),
   solar_power_generation = c(
-    c(85, 157.5, 280.7, 16.7, rep(NA, 8)),
+    c(85, 157.5, 280.7, 70.0, rep(NA, 8)),
     c(rep(NA, 5), 358.4, 394.9, 314.3, 332.8, 235, 119.6, 38.7),
     rep(NA, 12),
     rep(NA, 12)
