@@ -1,7 +1,7 @@
 library(dplyr)
 library(tidyr)
 library(jsonlite)
-
+library(ggplot2)
 
 create_message <- function(solar_data_df){
   days_in_current_month <- Sys.Date() %>% strftime(format="%d") %>% as.numeric()
@@ -144,8 +144,40 @@ solar_data <-
 # Push
 push_message <- create_message(solar_data)
 
+generation_plot <- 
+  solar_data %>% 
+  select(year_month, solar_power_generation, fitted_values) %>% 
+  tidyr::pivot_longer(cols = solar_power_generation:fitted_values,
+                      names_to = "energy_type",
+                      values_to = "kWh") %>% 
+  mutate(energy_type = factor(energy_type, levels = c("solar_power_generation", "fitted_values"))) %>% 
+  ggplot(aes(year_month, kWh, 
+             colour = energy_type, group = energy_type,
+             linetype = energy_type)) +
+  geom_line(size = 1.2) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank(),
+        text = element_text(size = 18),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_colour_brewer(type = "qual", palette = "Set2") +
+  labs(
+    title = paste0("Solar Energy Production - Fitted vs Actual"),
+    x = "Year-Month",
+    y = "kWh",
+    colour = "Actual vs Model",
+    linetype= "Actual vs Model"
+  )
+
+ggsave("generation_plot.png", plot = generation_plot,
+       width = 16, height = 9)
+
 RPushbullet::pbPost(
-  "note",
-  title = push_message$title_text,
-  body = push_message$body_text
+  "file",
+  body = paste0(
+    push_message$title_text,
+    "\n\n",
+    push_message$body_text
+  ),
+  url = "generation_plot.png",
+  filetype = "image/png"
 )
