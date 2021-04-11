@@ -158,7 +158,8 @@ generation_plot <-
   theme_light() +
   theme(panel.grid.minor.x = element_blank(),
         text = element_text(size = 18),
-        axis.text.x = element_text(angle = 45, hjust = 1)) +
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "top") +
   scale_colour_brewer(type = "qual", palette = "Set2") +
   labs(
     title = paste0("Solar Energy Production - Fitted vs Actual"),
@@ -169,7 +170,7 @@ generation_plot <-
   )
 
 ggsave("generation_plot.png", plot = generation_plot,
-       width = 16, height = 9)
+       width = 8, height = 4.5)
 
 RPushbullet::pbPost(
   "file",
