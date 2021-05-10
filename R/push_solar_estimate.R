@@ -54,7 +54,10 @@ create_message <- function(solar_data_df){
       "Since ",
       filter(solar_data_df, is_training & year_month == min(year_month))$year_month, 
       " estimated total value from solar panels: €",
-      round(sum(solar_data_df$estimated_energy_utilised_value, na.rm = TRUE))
+      round(sum(solar_data_df$estimated_energy_utilised_value, na.rm = TRUE)),
+      "\n",
+      "Total Carbon Offset: ", 
+      round(sum(solar_data_df$fitted_values) * PROVIDER_CARBON_INTENSITY, 0), " kg CO2 equivalent"
     )
   )
 }
@@ -62,8 +65,9 @@ create_message <- function(solar_data_df){
 # Constants
 
 ELECTRICITY_PRICE = 0.20
-FEED_IN_TARRIF_PRICE = 0.1
+FEED_IN_TARRIF_PRICE = 0.7
 ESTIMATED_SELF_USE_RATE = 0.75
+PROVIDER_CARBON_INTENSITY = 0.288  # kg CO2 / kWh (SSE for 2020)
 
 
 # Import
