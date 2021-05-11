@@ -65,7 +65,7 @@ create_message <- function(solar_data_df){
 # Constants
 
 ELECTRICITY_PRICE = 0.20
-FEED_IN_TARRIF_PRICE = 0.7
+FEED_IN_TARRIF_PRICE = 0.07
 ESTIMATED_SELF_USE_RATE = 0.75
 PROVIDER_CARBON_INTENSITY = 0.288  # kg CO2 / kWh (SSE for 2020)
 
